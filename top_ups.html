@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+    <title>VIP Diamond Packs</title>
+
+    <!-- Tailwind CLI (v4 via CDN) -->
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="./main.js"></script>
+</head>
+<body>
+
+<div x-data="vipPacks()" x-init="init()" class="p-6 bg-gray-900 min-h-screen w-full text-white">
+
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-white">VIP Diamond Packs</h1>
+        <button
+                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                @click="showModal = true"
+        >Add
+        </button>
+    </div>
+
+    <!-- Packs Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <template x-for="pack in packs" :key="pack.id">
+            <div class="bg-gray-800 p-4 rounded shadow flex flex-col justify-between">
+                <div>
+                    <p class="text-xl font-semibold text-white" x-text="pack.diamonds + ' 💎'"></p>
+                    <p class="text-lg text-gray-300" x-text="'$' + pack.price.toFixed(2)"></p>
+                    <p class="text-sm text-gray-400 mt-1" x-text="new Date(pack.createdAt).toLocaleString()"></p>
+                </div>
+                <button
+                        class="mt-4 bg-red-600 text-white text-sm px-3 py-1 rounded hover:bg-red-700"
+                        @click="removePack(pack.id)"
+                >Remove
+                </button>
+            </div>
+        </template>
+    </div>
+
+    <!-- Add Pack Modal -->
+    <div
+            x-show="showModal"
+            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            style="display: none"
+    >
+        <div class="bg-gray-900 text-white p-6 rounded-lg w-full max-w-sm" @click.outside="showModal = false">
+            <h2 class="text-xl font-semibold mb-4">Add Diamond Pack</h2>
+            <form @submit.prevent="addPack">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Diamonds</label>
+                    <input type="number" x-model="form.diamonds" min="1"
+                           class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Price ($)</label>
+                    <input type="number" x-model="form.price" step="0.01" min="0.01"
+                           class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white" required>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" @click="showModal = false"
+                            class="text-gray-400 mr-4 hover:text-gray-200">Cancel
+                    </button>
+                    <button type="submit"
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // Helper to get cookie value
+
+
+    // Toast config (SweetAlert2)
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2500,
+        timerProgressBar: true,
+    });
+
+    function vipPacks() {
+        return {
+            showModal: false,
+            packs: [],
+            form: {
+                diamonds: '',
+                price: ''
+            },
+
+            // init function to load data
+            init() {
+                this.fetchPacks();
+            },
+
+            // fetch all diamond packs
+            fetchPacks() {
+                axios.get('http://localhost:7898/vip/diamond-pack', {
+                    headers: {
+                        Authorization: `Bearer ${getCookie('token')}`
+                    }
+                })
+                    .then(res => {
+                        this.packs = res.data;
+                    })
+                    .catch(err => {
+                        Toast.fire({icon: 'error', title: 'Failed to retrieve data'});
+                        console.error(err);
+                    });
+            },
+
+            // add new pack
+            addPack() {
+                axios.post('http://localhost:7898/vip/diamond-pack', {
+                    diamonds: Number(this.form.diamonds),
+                    price: Number(this.form.price)
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie('token')}`
+                    }
+                })
+                    .then(() => {
+                        Toast.fire({icon: 'success', title: 'Added successfully'});
+                        this.showModal = false;
+                        this.form.diamonds = '';
+                        this.form.price = '';
+                        this.fetchPacks();
+                    })
+                    .catch(err => {
+                        Toast.fire({icon: 'error', title: 'Failed to add pack'});
+                        console.error(err);
+                    });
+            },
+
+            // delete a pack
+            removePack(id) {
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: 'This will delete the diamond pack.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#aaa',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        axios.delete(`http://localhost:7898/vip/diamond-pack/${id}`, {
+                            headers: {
+                                Authorization: `Bearer ${getCookie('token')}`
+                            }
+                        })
+                            .then(() => {
+                                Toast.fire({icon: 'success', title: 'Deleted successfully'});
+                                this.fetchPacks();
+                            })
+                            .catch((err) => {
+                                Toast.fire({icon: 'error', title: 'Failed to delete'});
+                                console.error(err);
+                            });
+                    }
+                });
+            }
+        }
+    }
+</script>
+
+</body>
+</html>

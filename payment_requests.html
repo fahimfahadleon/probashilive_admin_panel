@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Payment Requests</title>
+
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="./main.js"></script>
+
+    <style type="text/tailwindcss">
+        @theme {
+            --color-clifford: #da373d;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+<div x-data="paymentPage()" x-init="loadPayments" class="p-6 w-full min-h-screen">
+    <h1 class="text-3xl font-bold mb-6">Payment Requests</h1>
+
+    <template x-if="loading">
+        <p>Loading...</p>
+    </template>
+
+    <template x-if="!loading && payments.length === 0">
+        <p class="text-gray-400">No payment requests found.</p>
+    </template>
+
+    <div class="space-y-4" x-show="!loading">
+        <template x-for="payment in payments" :key="payment.id">
+            <div class="bg-white text-gray-900 rounded-lg shadow p-4 flex justify-between items-center">
+                <div>
+                    <p class="font-bold" x-text="payment.user.name + ' (' + payment.user.id + ')'"></p>
+                    <p class="text-sm text-gray-600 mt-1">
+                        💳 <span x-text="payment.method"></span> |
+                        💬 <span x-text="payment.description || 'No description'"></span> |
+                        🆔 <span x-text="payment.transactionId"></span>
+                    </p>
+                    <!-- ✅ NEW LINE for itemId -->
+                    <template x-if="payment.item">
+                        <p class="text-sm text-blue-700 mt-1">
+                            💎 <span x-text="payment.item.diamonds"></span> Diamonds |
+                            💰 $<span x-text="payment.item.price.toFixed(2)"></span>
+                        </p>
+                    </template>
+                    <template x-if="!payment.item">
+                        <p class="text-sm text-red-500 mt-1">❗ Pack info not found</p>
+                    </template>
+                    <p class="text-xs text-gray-500"
+                       x-text="'Created at: ' + new Date(payment.createdAt).toLocaleString()"></p>
+                </div>
+                <div class="space-x-2">
+                    <button
+                            class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                            @click="handleAction(payment.id, 'accept')"
+                    >Accept
+                    </button>
+                    <button
+                            class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                            @click="handleAction(payment.id, 'decline')"
+                    >Decline
+                    </button>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
+
+<script>
+
+    function handleAction(paymentId, action) {
+        const url = `http://localhost:7898/payment/${action}/${paymentId}`; // 'accept' or 'decline'
+        axios.post(url, {}, {
+            headers: {
+                Authorization: `Bearer ${getCookie('token')}`,
+            },
+        })
+            .then(() => {
+                // Remove from list after action
+                this.payments = this.payments.filter(p => p.id !== paymentId);
+                Swal.fire('Success', `Payment ${action}ed`, 'success');
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire('Error', `Failed to ${action} payment`, 'error');
+            });
+    }
+
+    function paymentPage() {
+        return {
+            payments: [],
+            loading: true,
+            loadPayments() {
+                axios.get('http://localhost:7898/payment/all', {
+                    headers: {
+                        Authorization: `Bearer ${getCookie('token')}`,
+                    },
+                })
+                    .then(res => {
+                        this.payments = res.data;
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Swal.fire('Error', 'Failed to load payments', 'error');
+                    })
+                    .finally(() => {
+                        this.loading = false;
+                    });
+            },
+            handleAction(paymentId, action) {
+                const url = `http://localhost:7898/payment/${action}/${paymentId}`;
+                axios.post(url, {}, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie('token')}`,
+                    },
+                })
+                    .then(() => {
+                        this.payments = this.payments.filter(p => p.id !== paymentId);
+                        Swal.fire('Success', `Payment ${action}ed`, 'success');
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Swal.fire('Error', `Failed to ${action} payment`, 'error');
+                    });
+            },
+        };
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Offers</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="./main.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+
+<div class="p-6 w-full min-h-screen" x-data="offerPage()" x-init="fetchOffers()">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Offers</h1>
+        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" @click="showModal = true">
+            Add
+        </button>
+    </div>
+
+    <div class="space-y-4">
+        <template x-for="o in offers" :key="o.id">
+            <div class="bg-white text-gray-800 p-4 rounded shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xl font-semibold" x-text="o.title"></p>
+                        <p class="text-gray-700 mt-1" x-text="o.content"></p>  <!-- changed here -->
+                        <p class="text-gray-600 mt-1 font-semibold" x-text="'Price: $' + o.price.toFixed(2)"></p> <!-- added price -->
+                        <p class="text-xs text-gray-500 mt-2" x-text="new Date(o.createdAt).toLocaleString()"></p>
+                    </div>
+                    <button @click="deleteOffer(o.id)" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                </div>
+            </div>
+        </template>
+
+        <template x-if="offers.length === 0">
+            <p class="text-gray-400">No offers available.</p>
+        </template>
+    </div>
+
+
+    <!-- Add Modal -->
+    <div x-show="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+         style="display: none;">
+        <div class="bg-white p-6 rounded-lg w-full max-w-md text-gray-800" @click.outside="showModal = false">
+            <h2 class="text-xl font-semibold mb-4">Create Offer</h2>
+            <form @submit.prevent="createOffer">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Title</label>
+                    <input type="text" x-model="form.title" class="w-full border border-gray-300 rounded px-3 py-2"
+                           required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Content</label>
+                    <textarea x-model="form.content" class="w-full border border-gray-300 rounded px-3 py-2"
+                              required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1">Price ($)</label>
+                    <input type="number" x-model="form.price" step="0.01" min="0"
+                           class="w-full border border-gray-300 rounded px-3 py-2" required>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" class="text-gray-500 mr-4" @click="showModal = false">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Create
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2500,
+        timerProgressBar: true,
+    });
+
+    function offerPage() {
+        return {
+            showModal: false,
+            offers: [],
+            form: {
+                title: '',
+                content: '', // ✅ changed from message
+                price: null  // ✅ added price as required by DTO
+            },
+
+            fetchOffers() {
+                axios.get('http://localhost:7898/offer/get-all', {
+                    headers: {
+                        Authorization: `Bearer ${getCookie('token')}`
+                    }
+                }).then(res => {
+                    this.offers = res.data;
+                }).catch(err => {
+                    Toast.fire({icon: 'error', title: 'Failed to load offers'});
+                    console.error(err);
+                });
+            },
+
+            createOffer() {
+
+                const payload = {
+                    title: this.form.title,
+                    content: this.form.content,
+                    price: Number(this.form.price),  // <-- ensure number here
+                };
+
+                axios.post('http://localhost:7898/offer/create', payload, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie('token')}`
+                    }
+                }).then(() => {
+                    Toast.fire({icon: 'success', title: 'Offer created'});
+                    this.showModal = false;
+                    this.form.title = '';
+                    this.form.content = '';
+                    this.form.price = null;
+                    this.fetchOffers();
+                }).catch(err => {
+                    Toast.fire({icon: 'error', title: 'Creation failed'});
+                    console.error(err);
+                });
+            },
+
+            deleteOffer(id) {
+                Swal.fire({
+                    title: 'Delete Offer?',
+                    text: 'This action cannot be undone.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#aaa',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        axios.delete(`http://localhost:7898/offer/delete:${id}`, {
+                            headers: {
+                                Authorization: `Bearer ${getCookie('token')}`
+                            }
+                        }).then(() => {
+                            Toast.fire({icon: 'success', title: 'Deleted successfully'});
+                            this.fetchOffers();
+                        }).catch(err => {
+                            Toast.fire({icon: 'error', title: 'Failed to delete'});
+                            console.error(err);
+                        });
+                    }
+                });
+            }
+        }
+    }
+
+
+</script>
+
+</body>
+</html>

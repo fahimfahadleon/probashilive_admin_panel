@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Announcements</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body class="bg-gray-900 text-white">
+
+<div class="p-6 min-h-screen w-full max-w-6xl mx-auto" x-data="announcementPage()" x-init="fetchAnnouncements()">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">Announcements</h1>
+        <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" @click="showModal = true">
+            Add
+        </button>
+    </div>
+
+    <div class="space-y-4">
+        <template x-for="a in announcements" :key="a.id">
+            <div class="bg-gray-800 p-4 rounded shadow">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="text-xl font-semibold" x-text="a.title"></p>
+                        <p class="text-gray-300 mt-1" x-text="a.message"></p>
+                        <p class="text-xs text-gray-400 mt-2" x-text="new Date(a.createdAt).toLocaleString()"></p>
+                    </div>
+                    <button @click="deleteAnnouncement(a.id)" class="text-red-400 hover:text-red-600 text-sm">Delete</button>
+                </div>
+            </div>
+        </template>
+
+        <template x-if="announcements.length === 0">
+            <p class="text-gray-500">No announcements yet.</p>
+        </template>
+    </div>
+
+    <!-- Add Modal -->
+    <div x-show="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-gray-800 p-6 rounded-lg w-full max-w-md text-white" @click.outside="showModal = false">
+            <h2 class="text-xl font-semibold mb-4">Create Announcement</h2>
+            <form @submit.prevent="createAnnouncement">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1 text-gray-300">Title</label>
+                    <input type="text" x-model="form.title"
+                           class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400"
+                           placeholder="Enter title" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-1 text-gray-300">Message</label>
+                    <textarea x-model="form.message"
+                              class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400"
+                              placeholder="Enter message" required></textarea>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" class="text-gray-400 mr-4 hover:text-white" @click="showModal = false">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 2500,
+        timerProgressBar: true,
+    });
+
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+    }
+
+    function announcementPage() {
+        return {
+            showModal: false,
+            announcements: [],
+            form: {
+                title: '',
+                message: ''
+            },
+
+            fetchAnnouncements() {
+                axios.get('http://localhost:7898/announcement/get-all', {
+                    headers: {
+                        Authorization: `Bearer ${getCookie('token')}`
+                    }
+                })
+                    .then(res => {
+                        this.announcements = res.data;
+                    })
+                    .catch(err => {
+                        Toast.fire({icon: 'error', title: 'Failed to load announcements'});
+                        console.error(err);
+                    });
+            },
+
+            createAnnouncement() {
+                axios.post('http://localhost:7898/announcement/create', this.form, {
+                    headers: {
+                        Authorization: `Bearer ${getCookie('token')}`
+                    }
+                })
+                    .then(() => {
+                        Toast.fire({icon: 'success', title: 'Announcement created'});
+                        this.showModal = false;
+                        this.form.title = '';
+                        this.form.message = '';
+                        this.fetchAnnouncements();
+                    })
+                    .catch(err => {
+                        Toast.fire({icon: 'error', title: 'Creation failed'});
+                        console.error(err);
+                    });
+            },
+
+            deleteAnnouncement(id) {
+                Swal.fire({
+                    title: 'Delete Announcement?',
+                    text: 'This action cannot be undone.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#aaa',
+                    confirmButtonText: 'Yes, delete it!'
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        axios.delete(`http://localhost:7898/announcement/remove:${id}`, {
+                            headers: {
+                                Authorization: `Bearer ${getCookie('token')}`
+                            }
+                        })
+                            .then(() => {
+                                Toast.fire({icon: 'success', title: 'Deleted successfully'});
+                                this.fetchAnnouncements();
+                            })
+                            .catch(err => {
+                                Toast.fire({icon: 'error', title: 'Failed to delete'});
+                                console.error(err);
+                            });
+                    }
+                });
+            }
+        }
+    }
+</script>
+
+</body>
+</html>
