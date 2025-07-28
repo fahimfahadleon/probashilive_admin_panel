@@ -86,6 +86,11 @@
                     <label class="block text-sm font-medium mb-1">SVGA File</label>
                     <input type="file" accept=".svga" @change="handleFileUpload" required />
                 </div>
+                <!-- Thumbnail preview -->
+                <div class="mb-4" x-show="thumbnailDataUrl">
+                    <label class="block text-sm font-medium mb-1">Thumbnail Preview</label>
+                    <img :src="thumbnailDataUrl" alt="Thumbnail Preview" class="w-24 h-24 object-contain rounded border" />
+                </div>
                 <div class="flex justify-end">
                     <button type="button" class="text-gray-500 mr-4" @click="showGiftModal = false">Cancel</button>
                     <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add</button>
@@ -115,7 +120,6 @@
 <script>
     const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2500, timerProgressBar: true });
 
-
     function initSVGAPlayer(canvasId, svgaUrl) {
         const canvas = document.getElementById(canvasId);
         if (!canvas) return;
@@ -132,7 +136,8 @@
             showGiftModal: false,
             showCategoryModal: false,
             categories: [],
-            giftForm: { name: '', price: null, categoryId: '', file: null },
+            thumbnailDataUrl: null,  // New reactive property for thumbnail preview
+            giftForm: { name: '', price: null, categoryId: '', file: null, thumbnailBlob: null },
             categoryForm: { name: '' },
 
             fetchGifts() {
@@ -163,16 +168,83 @@
             },
 
             handleFileUpload(event) {
-                this.giftForm.file = event.target.files[0];
+                const file = event.target.files[0];
+                if (!file || !file.name.endsWith('.svga')) {
+                    this.giftForm.file = null;
+                    this.thumbnailDataUrl = null;
+                    this.giftForm.thumbnailBlob = null;
+                    Swal.fire('Error', 'Please select a valid SVGA file', 'error');
+                    return;
+                }
+
+                this.giftForm.file = file;
+
+                const fileUrl = URL.createObjectURL(file);
+                const parser = new SVGA.Parser();
+
+                parser.load(fileUrl, (videoItem) => {
+                    // Step 1: Create a full-size canvas to render the SVGA
+                    const sourceCanvas = document.createElement('canvas');
+                    sourceCanvas.width = videoItem.videoSize.width;
+                    sourceCanvas.height = videoItem.videoSize.height;
+
+                    const player = new SVGA.Player(sourceCanvas);
+                    player.setVideoItem(videoItem);
+
+                    const targetFrame = Math.min(10, videoItem.frames - 1);
+                    player.stepToFrame(targetFrame, true);
+
+                    // Step 2: Wait for render to finish
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            // Step 3: Create a 90x90 thumbnail canvas
+                            const thumbCanvas = document.createElement('canvas');
+                            const thumbSize = 90;
+                            thumbCanvas.width = thumbSize;
+                            thumbCanvas.height = thumbSize;
+
+                            const ctx = thumbCanvas.getContext('2d');
+                            ctx.fillStyle = 'white';
+                            ctx.fillRect(0, 0, thumbSize, thumbSize); // background
+
+                            // Step 4: Scale the full-size image into the thumbnail canvas
+                            ctx.drawImage(
+                                sourceCanvas,
+                                0, 0, sourceCanvas.width, sourceCanvas.height,
+                                0, 0, thumbSize, thumbSize
+                            );
+
+                            // Step 5: Convert to blob and preview
+                            thumbCanvas.toBlob((blob) => {
+                                this.giftForm.thumbnailBlob = blob;
+                            }, 'image/png');
+
+                            this.thumbnailDataUrl = thumbCanvas.toDataURL('image/png');
+                        }, 50);
+                    });
+                }, (error) => {
+                    console.error('Failed to parse SVGA file', error);
+                    Swal.fire('Error', 'Failed to parse SVGA file for thumbnail', 'error');
+                    this.thumbnailDataUrl = null;
+                    this.giftForm.thumbnailBlob = null;
+                });
             },
+
+
 
             createGift() {
                 if (!this.giftForm.file) {
                     Swal.fire('Error', 'Please select an SVGA file', 'error');
                     return;
                 }
+                if (!this.giftForm.thumbnailBlob) {
+                    Swal.fire('Error', 'Thumbnail not generated yet, please wait', 'error');
+                    return;
+                }
+
                 const formData = new FormData();
                 formData.append('file', this.giftForm.file);
+                formData.append('thumbnail', this.giftForm.thumbnailBlob, 'thumbnail.png');
                 formData.append('name', this.giftForm.name);
                 formData.append('price', this.giftForm.price);
                 formData.append('categoryId', this.giftForm.categoryId);
@@ -182,7 +254,8 @@
                 }).then(() => {
                     Toast.fire({ icon: 'success', title: 'Gift added' });
                     this.showGiftModal = false;
-                    this.giftForm = { name: '', price: null, categoryId: '', file: null };
+                    this.giftForm = { name: '', price: null, categoryId: '', file: null, thumbnailBlob: null };
+                    this.thumbnailDataUrl = null;
                     this.fetchGifts();
                 }).catch(err => {
                     Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Failed to add gift' });
