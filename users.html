@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-900 text-white min-h-screen">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.2.4/dist/tailwind.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/svgaplayerweb@2.3.0/build/svga.min.js"></script>
+  <script src="./main.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+  <div class="p-6 min-h-screen w-full max-w-6xl mx-auto" x-data="userPage()" x-init="fetchUsers()">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold">Users</h1>
+    </div>
+
+    <!-- Users Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <template x-for="user in users" :key="user.id">
+        <div class="bg-gray-800 p-4 rounded-lg shadow flex justify-between items-center hover:shadow-lg transition">
+          <!-- User Info -->
+          <div>
+            <p class="text-xl font-semibold" x-text="user.name"></p>
+            <p class="text-gray-300 mt-1">💎 <span x-text="user.diamond"></span> Diamonds</p>
+            <p class="text-gray-300">VIP: <span x-text="user.vipStatus ? '✅' : '❌'"></span></p>
+            <p class="text-gray-300">Level: <span x-text="user.level"></span></p>
+          </div>
+
+          <!-- Actions -->
+          <div class="space-x-2 flex-shrink-0">
+            <button
+                    @click="toggleBlock(user)"
+                    class="px-3 py-1 rounded text-white"
+                    :class="user.isBlocked ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
+                    x-text="user.isBlocked ? 'Unblock' : 'Block'">
+            </button>
+            <button class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700">Edit</button>
+          </div>
+        </div>
+      </template>
+    </div>
+
+    <template x-if="users.length === 0">
+      <p class="text-gray-500 mt-4">No users found.</p>
+    </template>
+
+    <!-- Pagination -->
+    <div class="flex justify-center mt-6 space-x-2">
+      <button
+              @click="prevPage"
+              :disabled="page === 1"
+              class="px-3 py-1 bg-gray-700 rounded disabled:opacity-50">Prev</button>
+      <span class="px-3 py-1" x-text="`Page ${page} of ${totalPages}`"></span>
+      <button
+              @click="nextPage"
+              :disabled="page === totalPages"
+              class="px-3 py-1 bg-gray-700 rounded disabled:opacity-50">Next</button>
+    </div>
+  </div>
+
+</body>
+
+
+<script>
+  const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+
+  function userPage() {
+    return {
+      users: [],
+      page: 1,
+      totalPages: 1,
+
+      fetchUsers() {
+        axios.get(`http://localhost:7898/admin/users?page=${this.page}&limit=10`, {
+          headers: { Authorization: `Bearer ${getCookie('token')}` }
+        }).then(res => {
+          this.users = res.data.users;
+          this.totalPages = res.data.totalPages;
+        }).catch(() => {
+          Toast.fire({ icon: 'error', title: 'Failed to load users' });
+        });
+      },
+
+      toggleBlock(user) {
+        axios.patch(`http://localhost:7898/admin/users/${user.id}/block`, {}, {
+          headers: { Authorization: `Bearer ${getCookie('token')}` }
+        }).then(res => {
+          user.isBlocked = res.data.isBlocked;
+          Toast.fire({ icon: 'success', title: user.isBlocked ? 'User blocked' : 'User unblocked' });
+        }).catch(() => {
+          Toast.fire({ icon: 'error', title: 'Failed to update user' });
+        });
+      },
+
+      prevPage() {
+        if (this.page > 1) {
+          this.page--;
+          this.fetchUsers();
+        }
+      },
+
+      nextPage() {
+        if (this.page < this.totalPages) {
+          this.page++;
+          this.fetchUsers();
+        }
+      }
+    }
+  }
+
+</script>
+</body>
+</html>

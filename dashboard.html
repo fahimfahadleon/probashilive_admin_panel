@@ -26,13 +26,15 @@
     <div class="max-w-7xl w-full mx-auto my-16">
         <div class="grid grid-cols-4 gap-6 ">
             <!-- Total Users -->
-            <div
-                    class="bg-white text-gray-900 rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
-                    title="Total Users"
-            >
-                <h2 class="text-xl font-semibold mb-2">Total Users</h2>
-                <p class="text-4xl font-bold" x-text="response.totalUser"></p>
-            </div>
+            <a href="users.html">
+                <div
+                        class="bg-white text-gray-900 rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
+                        title="Total Users"
+                >
+                    <h2 class="text-xl font-semibold mb-2">Total Users</h2>
+                    <p class="text-4xl font-bold" x-text="response.totalUser"></p>
+                </div>
+            </a>
 
             <!-- Other cards disabled for now -->
             <div
@@ -150,7 +152,7 @@
             </a>
 
 
-                <a href="collections.html">
+            <a href="collections.html">
                 <div
                         class="bg-white text-gray-900 rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
                         title="Collections"
