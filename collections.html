@@ -1,265 +1,282 @@
 <!DOCTYPE html>
 <html lang="en" class="bg-gray-900 text-white min-h-screen">
+
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Collections Management</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.2.4/dist/tailwind.min.css" rel="stylesheet"/>
-    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet"/>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.2.4/dist/tailwind.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/svgaplayerweb@2.3.0/build/svga.min.js"></script>
     <script src="./main.js"></script>
 </head>
+
 <body>
-<div class="p-6 w-full min-h-screen" x-data="CollectionsPage()" x-init="fetchCollections()">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">Collections</h1>
-        <div>
-            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" @click="showCollectionsModal = true">Add Collections</button>
-            <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-4" @click="showCategoryModal = true">Add Category</button>
-        </div>
-    </div>
-
-    <template x-if="categories.length === 0">
-        <p class="text-gray-400">No Collections/categories available.</p>
-    </template>
-
-    <template x-for="category in categories" :key="category.id" class="mb-8">
-        <div>
-            <h2 class="text-xl font-semibold mb-4" x-text="category.name"></h2>
-            <div class="flex flex-wrap gap-4 justify-start">
-                <template x-for="collections in category.collections" :key="collections.id">
-                    <div
-                            class="bg-white text-gray-800 rounded shadow flex flex-col relative max-w-[90px] p-2"
-                            x-init="$nextTick(() => initSVGAPlayer(`svga-${collections.id}`, `http://localhost:7898${collections.imageUrl}`))"
-                    >
-                
-                        <p class="font-semibold text-start mb-1 truncate w-full text-xs" x-text="collections.name"></p>
-
-                        <canvas :id="`svga-${collections.id}`" width="90" height="90" class="mb-1"></canvas>
-
-                        <p class="text-xs text-gray-600 text-start" x-text="'$' + collections.price.toFixed(2)"></p>
-                    </div>
-                </template>
-
-                <template x-if="category.collections.length === 0">
-                    <p class="text-gray-400 col-span-full">No collections in this category.</p>
-                </template>
+    <div class="p-6 w-full min-h-screen" x-data="CollectionsPage()" x-init="fetchCollections()">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">Collections</h1>
+            <div>
+                <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                    @click="showCollectionsModal = true">Add Collections</button>
+                <button class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-4"
+                    @click="showCategoryModal = true">Add Category</button>
             </div>
         </div>
-    </template>
 
-    <!-- Add Gift Modal -->
-    <div x-show="showCollectionsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" style="display: none;" @keydown.escape.window="showCollectionsModal = false">
-        <div class="bg-white p-6 rounded-lg w-full max-w-md text-gray-800" @click.outside="showCollectionsModal = false">
-            <h2 class="text-xl font-semibold mb-4">Add Collections</h2>
-            <form @submit.prevent="createCollections" enctype="multipart/form-data">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Name</label>
-                    <input type="text" x-model="collectionsForm.name" class="w-full border border-gray-300 rounded px-3 py-2" required />
+        <template x-if="categories.length === 0">
+            <p class="text-gray-400">No Collections/categories available.</p>
+        </template>
+
+        <template x-for="category in categories" :key="category.id" class="mb-8">
+            <div>
+                <h2 class="text-xl font-semibold mb-4" x-text="category.name"></h2>
+                <div class="flex flex-wrap gap-4 justify-start">
+                    <template x-for="collections in category.collections" :key="collections.id">
+                        <div class="bg-white text-gray-800 rounded shadow flex flex-col relative max-w-[90px] p-2"
+                            x-init="$nextTick(() => initSVGAPlayer(`svga-${collections.id}`, `/api/${collections.imageUrl}`))">
+
+                            <p class="font-semibold text-start mb-1 truncate w-full text-xs" x-text="collections.name">
+                            </p>
+
+                            <canvas :id="`svga-${collections.id}`" width="90" height="90" class="mb-1"></canvas>
+
+                            <p class="text-xs text-gray-600 text-start" x-text="'$' + collections.price.toFixed(2)"></p>
+                        </div>
+                    </template>
+
+                    <template x-if="category.collections.length === 0">
+                        <p class="text-gray-400 col-span-full">No collections in this category.</p>
+                    </template>
                 </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Price ($)</label>
-                    <input type="number" x-model.number="collectionsForm.price" step="0.01" min="0" class="w-full border border-gray-300 rounded px-3 py-2" required />
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Category</label>
-                    <select x-model="collectionsForm.categoryId" class="w-full border border-gray-300 rounded px-3 py-2" required>
-                        <option value="" disabled>Select a category</option>
-                        <template x-for="cat in categories" :key="cat.id">
-                            <option :value="cat.id" x-text="cat.name"></option>
-                        </template>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">SVGA File</label>
-                    <input type="file" accept=".svga" @change="handleFileUpload" required />
-                </div>
-                <!-- Thumbnail preview -->
-                <div class="mb-4" x-show="thumbnailDataUrl">
-                    <label class="block text-sm font-medium mb-1">Thumbnail Preview</label>
-                    <img :src="thumbnailDataUrl" alt="Thumbnail Preview" class="w-24 h-24 object-contain rounded border" />
-                </div>
-                <div class="flex justify-end">
-                    <button type="button" class="text-gray-500 mr-4" @click="showCollectionsModal = false">Cancel</button>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add</button>
-                </div>
-            </form>
+            </div>
+        </template>
+
+        <!-- Add Gift Modal -->
+        <div x-show="showCollectionsModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            style="display: none;" @keydown.escape.window="showCollectionsModal = false">
+            <div class="bg-white p-6 rounded-lg w-full max-w-md text-gray-800"
+                @click.outside="showCollectionsModal = false">
+                <h2 class="text-xl font-semibold mb-4">Add Collections</h2>
+                <form @submit.prevent="createCollections" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Name</label>
+                        <input type="text" x-model="collectionsForm.name"
+                            class="w-full border border-gray-300 rounded px-3 py-2" required />
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Price ($)</label>
+                        <input type="number" x-model.number="collectionsForm.price" step="0.01" min="0"
+                            class="w-full border border-gray-300 rounded px-3 py-2" required />
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Category</label>
+                        <select x-model="collectionsForm.categoryId"
+                            class="w-full border border-gray-300 rounded px-3 py-2" required>
+                            <option value="" disabled>Select a category</option>
+                            <template x-for="cat in categories" :key="cat.id">
+                                <option :value="cat.id" x-text="cat.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">SVGA File</label>
+                        <input type="file" accept=".svga" @change="handleFileUpload" required />
+                    </div>
+                    <!-- Thumbnail preview -->
+                    <div class="mb-4" x-show="thumbnailDataUrl">
+                        <label class="block text-sm font-medium mb-1">Thumbnail Preview</label>
+                        <img :src="thumbnailDataUrl" alt="Thumbnail Preview"
+                            class="w-24 h-24 object-contain rounded border" />
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" class="text-gray-500 mr-4"
+                            @click="showCollectionsModal = false">Cancel</button>
+                        <button type="submit"
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Category Modal -->
+        <div x-show="showCategoryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+            style="display: none;" @keydown.escape.window="showCategoryModal = false">
+            <div class="bg-white p-6 rounded-lg w-full max-w-md text-gray-800"
+                @click.outside="showCategoryModal = false">
+                <h2 class="text-xl font-semibold mb-4">Add Category</h2>
+                <form @submit.prevent="createCategory">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Category Name</label>
+                        <input type="text" x-model="categoryForm.name"
+                            class="w-full border border-gray-300 rounded px-3 py-2" required />
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" class="text-gray-500 mr-4"
+                            @click="showCategoryModal = false">Cancel</button>
+                        <button type="submit"
+                            class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Add</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
-    <!-- Add Category Modal -->
-    <div x-show="showCategoryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" style="display: none;" @keydown.escape.window="showCategoryModal = false">
-        <div class="bg-white p-6 rounded-lg w-full max-w-md text-gray-800" @click.outside="showCategoryModal = false">
-            <h2 class="text-xl font-semibold mb-4">Add Category</h2>
-            <form @submit.prevent="createCategory">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-1">Category Name</label>
-                    <input type="text" x-model="categoryForm.name" class="w-full border border-gray-300 rounded px-3 py-2" required />
-                </div>
-                <div class="flex justify-end">
-                    <button type="button" class="text-gray-500 mr-4" @click="showCategoryModal = false">Cancel</button>
-                    <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Add</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+    <script>
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2500, timerProgressBar: true });
 
-<script>
-    const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2500, timerProgressBar: true });
+        function initSVGAPlayer(canvasId, svgaUrl) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const player = new SVGA.Player(canvas);
+            const parser = new SVGA.Parser(canvas);
+            parser.load(svgaUrl, (videoItem) => {
+                player.setVideoItem(videoItem);
+                player.startAnimation();
+            });
+        }
 
-    function initSVGAPlayer(canvasId, svgaUrl) {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) return;
-        const player = new SVGA.Player(canvas);
-        const parser = new SVGA.Parser(canvas);
-        parser.load(svgaUrl, (videoItem) => {
-            player.setVideoItem(videoItem);
-            player.startAnimation();
-        });
-    }
+        function CollectionsPage() {
+            return {
+                showCollectionsModal: false,
+                showCategoryModal: false,
+                categories: [],
+                thumbnailDataUrl: null,  // New reactive property for thumbnail preview
+                collectionsForm: { name: '', price: null, categoryId: '', file: null, thumbnailBlob: null },
+                categoryForm: { name: '' },
 
-    function CollectionsPage() {
-        return {
-            showCollectionsModal: false,
-            showCategoryModal: false,
-            categories: [],
-            thumbnailDataUrl: null,  // New reactive property for thumbnail preview
-            collectionsForm: { name: '', price: null, categoryId: '', file: null, thumbnailBlob: null },
-            categoryForm: { name: '' },
-
-            fetchCollections() {
-                axios.get('http://localhost:7898/collections/by-category', {
-                    headers: { Authorization: `Bearer ${getCookie('token')}` }
-                }).then(res => {
-                    this.categories = res.data;
-                }).catch(() => {
-                    Toast.fire({ icon: 'error', title: 'Failed to load colelctions' });
-                });
-            },
-
-
-
-            handleFileUpload(event) {
-                const file = event.target.files[0];
-                if (!file || !file.name.endsWith('.svga')) {
-                    this.collectionsForm.file = null;
-                    this.thumbnailDataUrl = null;
-                    this.collectionsForm.thumbnailBlob = null;
-                    Swal.fire('Error', 'Please select a valid SVGA file', 'error');
-                    return;
-                }
-
-                this.collectionsForm.file = file;
-
-                const fileUrl = URL.createObjectURL(file);
-                const parser = new SVGA.Parser();
-
-                parser.load(fileUrl, (videoItem) => {
-                    // Step 1: Create a full-size canvas to render the SVGA
-                    const sourceCanvas = document.createElement('canvas');
-                    sourceCanvas.width = videoItem.videoSize.width;
-                    sourceCanvas.height = videoItem.videoSize.height;
-
-                    const player = new SVGA.Player(sourceCanvas);
-                    player.setVideoItem(videoItem);
-
-                    const targetFrame = Math.min(10, videoItem.frames - 1);
-                    player.stepToFrame(targetFrame, true);
-
-                    // Step 2: Wait for render to finish
-                    requestAnimationFrame(() => {
-                        setTimeout(() => {
-                            // Step 3: Create a 90x90 thumbnail canvas
-                            const thumbCanvas = document.createElement('canvas');
-                            const thumbSize = 90;
-                            thumbCanvas.width = thumbSize;
-                            thumbCanvas.height = thumbSize;
-
-                            const ctx = thumbCanvas.getContext('2d');
-                            ctx.fillStyle = 'white';
-                            ctx.fillRect(0, 0, thumbSize, thumbSize); // background
-
-                            // Step 4: Scale the full-size image into the thumbnail canvas
-                            ctx.drawImage(
-                                sourceCanvas,
-                                0, 0, sourceCanvas.width, sourceCanvas.height,
-                                0, 0, thumbSize, thumbSize
-                            );
-
-                            // Step 5: Convert to blob and preview
-                            thumbCanvas.toBlob((blob) => {
-                                this.collectionsForm.thumbnailBlob = blob;
-                            }, 'image/png');
-
-                            this.thumbnailDataUrl = thumbCanvas.toDataURL('image/png');
-                        }, 50);
+                fetchCollections() {
+                    axios.get('/api/collections/by-category', {
+                        headers: { Authorization: `Bearer ${getCookie('token')}` }
+                    }).then(res => {
+                        this.categories = res.data;
+                    }).catch(() => {
+                        Toast.fire({ icon: 'error', title: 'Failed to load colelctions' });
                     });
-                }, (error) => {
-                    console.error('Failed to parse SVGA file', error);
-                    Swal.fire('Error', 'Failed to parse SVGA file for thumbnail', 'error');
-                    this.thumbnailDataUrl = null;
-                    this.collectionsForm.thumbnailBlob = null;
-                });
-            },
+                },
 
 
 
-            createCollections() {
-                if (!this.collectionsForm.file) {
-                    Swal.fire('Error', 'Please select an SVGA file', 'error');
-                    return;
+                handleFileUpload(event) {
+                    const file = event.target.files[0];
+                    if (!file || !file.name.endsWith('.svga')) {
+                        this.collectionsForm.file = null;
+                        this.thumbnailDataUrl = null;
+                        this.collectionsForm.thumbnailBlob = null;
+                        Swal.fire('Error', 'Please select a valid SVGA file', 'error');
+                        return;
+                    }
+
+                    this.collectionsForm.file = file;
+
+                    const fileUrl = URL.createObjectURL(file);
+                    const parser = new SVGA.Parser();
+
+                    parser.load(fileUrl, (videoItem) => {
+                        // Step 1: Create a full-size canvas to render the SVGA
+                        const sourceCanvas = document.createElement('canvas');
+                        sourceCanvas.width = videoItem.videoSize.width;
+                        sourceCanvas.height = videoItem.videoSize.height;
+
+                        const player = new SVGA.Player(sourceCanvas);
+                        player.setVideoItem(videoItem);
+
+                        const targetFrame = Math.min(10, videoItem.frames - 1);
+                        player.stepToFrame(targetFrame, true);
+
+                        // Step 2: Wait for render to finish
+                        requestAnimationFrame(() => {
+                            setTimeout(() => {
+                                // Step 3: Create a 90x90 thumbnail canvas
+                                const thumbCanvas = document.createElement('canvas');
+                                const thumbSize = 90;
+                                thumbCanvas.width = thumbSize;
+                                thumbCanvas.height = thumbSize;
+
+                                const ctx = thumbCanvas.getContext('2d');
+                                ctx.fillStyle = 'white';
+                                ctx.fillRect(0, 0, thumbSize, thumbSize); // background
+
+                                // Step 4: Scale the full-size image into the thumbnail canvas
+                                ctx.drawImage(
+                                    sourceCanvas,
+                                    0, 0, sourceCanvas.width, sourceCanvas.height,
+                                    0, 0, thumbSize, thumbSize
+                                );
+
+                                // Step 5: Convert to blob and preview
+                                thumbCanvas.toBlob((blob) => {
+                                    this.collectionsForm.thumbnailBlob = blob;
+                                }, 'image/png');
+
+                                this.thumbnailDataUrl = thumbCanvas.toDataURL('image/png');
+                            }, 50);
+                        });
+                    }, (error) => {
+                        console.error('Failed to parse SVGA file', error);
+                        Swal.fire('Error', 'Failed to parse SVGA file for thumbnail', 'error');
+                        this.thumbnailDataUrl = null;
+                        this.collectionsForm.thumbnailBlob = null;
+                    });
+                },
+
+
+
+                createCollections() {
+                    if (!this.collectionsForm.file) {
+                        Swal.fire('Error', 'Please select an SVGA file', 'error');
+                        return;
+                    }
+                    if (!this.collectionsForm.thumbnailBlob) {
+                        Swal.fire('Error', 'Thumbnail not generated yet, please wait', 'error');
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('file', this.collectionsForm.file);
+                    formData.append('thumbnail', this.collectionsForm.thumbnailBlob, 'thumbnail.png');
+                    formData.append('name', this.collectionsForm.name);
+                    formData.append('price', this.collectionsForm.price);
+                    formData.append('categoryId', this.collectionsForm.categoryId);
+
+                    axios.post('/api/collections/upload', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${getCookie('token')}` }
+                    }).then(() => {
+                        Toast.fire({ icon: 'success', title: 'Collections added' });
+                        this.showCollectionsModal = false;
+                        this.collectionsForm = { name: '', price: null, categoryId: '', file: null, thumbnailBlob: null };
+                        this.thumbnailDataUrl = null;
+                        this.fetchCollections();
+                    }).catch(err => {
+                        Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Failed to add collections' });
+                    });
+                },
+
+                createCategory() {
+                    if (!this.categoryForm.name.trim()) {
+                        Swal.fire('Error', 'Category name cannot be empty', 'error');
+                        return;
+                    }
+                    axios.post('/api/collections/category', { name: this.categoryForm.name }, {
+                        headers: { Authorization: `Bearer ${getCookie('token')}` }
+                    }).then(() => {
+                        Toast.fire({ icon: 'success', title: 'Category added' });
+                        this.showCategoryModal = false;
+                        this.categoryForm.name = '';
+                        this.fetchCollections();
+                    }).catch(() => {
+                        Toast.fire({ icon: 'error', title: 'Failed to add category' });
+                    });
+                },
+
+                onImgError(event) {
+                    event.target.src = 'https://via.placeholder.com/64?text=No+Image';
                 }
-                if (!this.collectionsForm.thumbnailBlob) {
-                    Swal.fire('Error', 'Thumbnail not generated yet, please wait', 'error');
-                    return;
-                }
-
-                const formData = new FormData();
-                formData.append('file', this.collectionsForm.file);
-                formData.append('thumbnail', this.collectionsForm.thumbnailBlob, 'thumbnail.png');
-                formData.append('name', this.collectionsForm.name);
-                formData.append('price', this.collectionsForm.price);
-                formData.append('categoryId', this.collectionsForm.categoryId);
-
-                axios.post('http://localhost:7898/collections/upload', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${getCookie('token')}` }
-                }).then(() => {
-                    Toast.fire({ icon: 'success', title: 'Collections added' });
-                    this.showCollectionsModal = false;
-                    this.collectionsForm = { name: '', price: null, categoryId: '', file: null, thumbnailBlob: null };
-                    this.thumbnailDataUrl = null;
-                    this.fetchCollections();
-                }).catch(err => {
-                    Toast.fire({ icon: 'error', title: err.response?.data?.message || 'Failed to add collections' });
-                });
-            },
-
-            createCategory() {
-                if (!this.categoryForm.name.trim()) {
-                    Swal.fire('Error', 'Category name cannot be empty', 'error');
-                    return;
-                }
-                axios.post('http://localhost:7898/collections/category', { name: this.categoryForm.name }, {
-                    headers: { Authorization: `Bearer ${getCookie('token')}` }
-                }).then(() => {
-                    Toast.fire({ icon: 'success', title: 'Category added' });
-                    this.showCategoryModal = false;
-                    this.categoryForm.name = '';
-                    this.fetchCollections();
-                }).catch(() => {
-                    Toast.fire({ icon: 'error', title: 'Failed to add category' });
-                });
-            },
-
-            onImgError(event) {
-                event.target.src = 'https://via.placeholder.com/64?text=No+Image';
             }
         }
-    }
-</script>
+    </script>
 </body>
+
 </html>

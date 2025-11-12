@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>App Settings</title>
+
+    <!-- Tailwind, Flowbite, Alpine, Axios, SweetAlert -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="./main.js"></script>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen">
+
+    <div x-data="settingsPage()" x-init="init()" class="p-6 w-full">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">App Settings</h1>
+            <button class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700" @click="showGatewayModal = true">
+                Add Payment Gateway
+            </button>
+        </div>
+
+        <!-- Profit Margin -->
+        <div class="bg-gray-800 p-4 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-semibold mb-4">Profit Margin</h2>
+            <form @submit.prevent="updateProfitMargin">
+                <div class="flex items-center space-x-3">
+                    <input type="number" x-model="profitMargin" step="0.1" min="0"
+                        class="w-32 bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white" />
+                    <button type="submit" class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">Save</button>
+                </div>
+            </form>
+        </div>
+        <!-- Payment Gateways -->
+        <div class="bg-gray-800 p-4 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-semibold mb-4">Payment Gateways</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <template x-for="gateway in gateways" :key="gateway.id">
+                    <div class="bg-gray-700 p-4 rounded flex flex-col justify-between">
+                        <div>
+                            <p class="text-xl font-semibold" x-text="gateway.provider"></p>
+                            <p class="text-sm text-gray-400 mt-1" x-text="gateway.phone"></p>
+                        </div>
+                        <button class="mt-3 bg-red-600 text-white text-sm px-3 py-1 rounded hover:bg-red-700"
+                            @click="removeGateway(gateway.id)">
+                            Remove
+                        </button>
+                    </div>
+                </template>
+            </div>
+            <template x-if="gateways.length === 0">
+                <p class="text-gray-400">No payment gateways added yet.</p>
+            </template>
+        </div>
+
+        <!-- App Settings -->
+        <div class="bg-gray-800 p-4 rounded-lg shadow">
+            <h2 class="text-lg font-semibold mb-4">General Settings</h2>
+            <div class="space-y-3">
+                <label class="flex items-center space-x-3">
+                    <input type="checkbox" x-model="settings.maintenanceMode"
+                        class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                    <span>Enable Maintenance Mode</span>
+                </label>
+
+                <label class="flex items-center space-x-3">
+                    <input type="checkbox" x-model="settings.showAds"
+                        class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                    <span>Show Ads in App</span>
+                </label>
+
+                <label class="flex items-center space-x-3">
+                    <input type="checkbox" x-model="settings.forceUpdate"
+                        class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded">
+                    <span>Force Update Required</span>
+                </label>
+
+                <button @click="saveAppSettings" class="mt-4 bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">
+                    Save Settings
+                </button>
+            </div>
+        </div>
+
+        <div x-show="showGatewayModal" x-transition.opacity
+            class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" style="display: none">
+            <div class="bg-gray-900 text-white p-6 rounded-lg w-full max-w-sm"
+                @click.outside="showGatewayModal = false">
+                <h2 class="text-xl font-semibold mb-4">Add Payment Gateway</h2>
+                <form @submit.prevent="addGateway">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Phone Number</label>
+                        <input type="text" x-model="gatewayForm.phone"
+                            class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Provider</label>
+                        <select x-model="gatewayForm.provider"
+                            class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white" required>
+                            <option value="Bkash">bKash</option>
+                            <option value="Nagad">Nagad</option>
+                            <option value="Rocket">Rocket</option>
+                            <option value="Upay">Upay</option>
+                        </select>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" @click="showGatewayModal = false"
+                            class="text-gray-400 mr-4 hover:text-gray-200">Cancel</button>
+                        <button type="submit" class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700">Add</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true,
+        });
+
+        function settingsPage() {
+            return {
+                profitMargin: 0,
+                gateways: [],
+                settings: {
+                    maintenanceMode: false,
+                    showAds: true,
+                    forceUpdate: false,
+                },
+                showGatewayModal: false,
+
+
+                init() {
+                    this.fetchSettings();
+                },
+
+                fetchSettings() {
+                    axios.get('/api/settings/get-settings', {
+                        headers: { Authorization: `Bearer ${getCookie('token')}` }
+                    })
+                        .then(res => {
+                            this.profitMargin = res.data.profitMargin || 0;
+                            this.gateways = res.data.gateways || [];
+                            this.settings = res.data.appSettings || this.settings;
+                        })
+                        .catch(err => {
+                            Toast.fire({ icon: 'error', title: 'Failed to load settings' });
+                            console.error(err);
+                        });
+                },
+
+                updateProfitMargin() {
+                    axios.put('/api/settings/profit-margin', { margin: Number(this.profitMargin) }, {
+                        headers: { Authorization: `Bearer ${getCookie('token')}` }
+                    })
+                        .then(() => {
+                            Toast.fire({ icon: 'success', title: 'Profit margin updated' });
+                        })
+                        .catch(err => {
+                            Toast.fire({ icon: 'error', title: 'Failed to update' });
+                            console.error(err);
+                        });
+                },
+
+                gatewayForm: { phone: '', provider: 'Bkash' },
+
+                addGateway() {
+                    axios.post('/api/settings/gateway', this.gatewayForm, {
+                        headers: { Authorization: `Bearer ${getCookie('token')}` }
+                    })
+                        .then(() => {
+                            Toast.fire({ icon: 'success', title: 'Gateway added' });
+                            this.showGatewayModal = false;
+                            this.gatewayForm = { phone: '', provider: 'Bkash' };
+                            this.fetchSettings();
+                        })
+                        .catch(err => {
+                            Toast.fire({ icon: 'error', title: 'Failed to add gateway' });
+                            console.error(err);
+                        });
+                },
+
+                removeGateway(id) {
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: 'This will remove the payment gateway.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#aaa',
+                        confirmButtonText: 'Yes, remove it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            axios.delete(`/api/settings/gateway/${id}`, {
+                                headers: { Authorization: `Bearer ${getCookie('token')}` }
+                            })
+                                .then(() => {
+                                    Toast.fire({ icon: 'success', title: 'Gateway removed' });
+                                    this.fetchSettings();
+                                })
+                                .catch(err => {
+                                    Toast.fire({ icon: 'error', title: 'Failed to remove' });
+                                    console.error(err);
+                                });
+                        }
+                    });
+                },
+
+                saveAppSettings() {
+                    axios.put('/api/settings/app', this.settings, {
+                        headers: { Authorization: `Bearer ${getCookie('token')}` }
+                    })
+                        .then(() => {
+                            Toast.fire({ icon: 'success', title: 'Settings saved' });
+                        })
+                        .catch(err => {
+                            Toast.fire({ icon: 'error', title: 'Failed to save settings' });
+                            console.error(err);
+                        });
+                }
+            }
+        }
+    </script>
+
+</body>
+
+</html>
