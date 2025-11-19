@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-900 text-white min-h-screen">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Coin Sellers</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="./main.js"></script>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen">
+    <div x-data="coinSellerAdmin()" x-init="init()" class="p-6 w-full min-h-screen">
+        <h1 class="text-3xl font-bold mb-6">Coin Seller Management</h1>
+
+        <!-- Loading -->
+        <template x-if="loading">
+            <p class="text-gray-400">Loading...</p>
+        </template>
+
+        <!-- Empty -->
+        <template x-if="!loading && sellers.length === 0">
+            <p class="text-gray-400">No coin sellers found.</p>
+        </template>
+
+        <!-- Seller List -->
+        <div class="space-y-4" x-show="!loading">
+            <template x-for="seller in sellers" :key="seller.id">
+                <div class="bg-gray-800 p-4 rounded-xl flex items-center justify-between">
+                    <!-- Seller Info -->
+                    <div class="flex items-center space-x-4">
+                        <img :src="seller.user.profilePic || '/default-avatar.png'"
+                            class="w-12 h-12 rounded-full border border-gray-700 object-cover">
+                        <div>
+                            <p class="font-semibold text-white" x-text="seller.fullName"></p>
+                            <p class="text-sm text-gray-400" x-text="seller.user.username"></p>
+                            <p class="text-xs text-gray-500"
+                                x-text="'Created: ' + new Date(seller.createdAt).toLocaleDateString()"></p>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex items-center gap-3">
+                        <!-- Active Switch -->
+                        <label class="flex items-center cursor-pointer">
+                            <div class="relative">
+                                <input type="checkbox" class="sr-only peer" :checked="seller.status === 'active'"
+                                    @change="toggleActive(seller)">
+                                <div
+                                    class="w-10 h-5 bg-gray-600 rounded-full peer-checked:bg-green-600 transition-colors duration-200">
+                                </div>
+                                <div
+                                    class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform duration-200 peer-checked:translate-x-5">
+                                </div>
+                            </div>
+                            <span class="ml-2 text-sm text-gray-300"
+                                x-text="seller.status === 'active' ? 'Active' : 'Inactive'"></span>
+                        </label>
+
+                        <!-- Buttons -->
+                        <button @click="openHistory(seller.id)"
+                            class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1 rounded">
+                            History
+                        </button>
+                        <button @click="openRecharge(seller.id)"
+                            class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded">
+                            Recharge
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- History Modal -->
+        <div x-show="showHistory" x-transition
+            class="fixed inset-0 flex items-center justify-center bg-black/70 z-50 backdrop-blur-sm">
+            <div class="bg-gray-900 w-full max-w-md p-6 rounded-2xl border border-gray-700 shadow-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-white">Send History</h2>
+                    <button @click="showHistory = false"
+                        class="text-gray-400 hover:text-gray-200 transition-colors">✕</button>
+                </div>
+
+                <div class="max-h-80 overflow-y-auto space-y-3 pr-1">
+                    <template x-for="entry in history" :key="entry.id">
+                        <div class="flex items-center justify-between bg-gray-800 p-3 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <img :src="entry.toUser.profilePic || '/default-avatar.png'"
+                                    class="w-8 h-8 rounded-full object-cover">
+                                <div>
+                                    <p class="text-sm text-white" x-text="entry.toUser.name"></p>
+                                    <p class="text-xs text-gray-400"
+                                        x-text="new Date(entry.createdAt).toLocaleString()"></p>
+                                </div>
+                            </div>
+                            <p class="text-green-400 font-semibold" x-text="entry.amount + ' 💎'"></p>
+                        </div>
+                    </template>
+                </div>
+
+                <template x-if="history.length === 0">
+                    <p class="text-gray-400 text-sm text-center">No send history found.</p>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function coinSellerAdmin() {
+            return {
+                sellers: [],
+                history: [],
+                showHistory: false,
+                loading: true,
+                token: window.getCookie('token'),
+
+                async init() {
+                    try {
+                        const res = await axios.get('/api/coin-seller', {
+                            headers: { Authorization: `Bearer ${this.token}` }
+                        });
+                        // Map DB 'status' to display properly
+                        this.sellers = res.data.map(s => ({
+                            ...s,
+                            status: s.status || 'active' // fallback to active
+                        }));
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire('Error', 'Failed to load sellers', 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async openHistory(id) {
+                    try {
+                        const res = await axios.get(`/api/coin-seller/${id}/history`, {
+                            headers: { Authorization: `Bearer ${this.token}` }
+                        });
+                        this.history = res.data;
+                        this.showHistory = true;
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire('Error', 'Failed to load history', 'error');
+                    }
+                },
+
+                async openRecharge(id) {
+                    const { value: amount } = await Swal.fire({
+                        title: 'Recharge Seller',
+                        input: 'number',
+                        inputLabel: 'Enter recharge amount',
+                        inputPlaceholder: 'Amount in coins',
+                        confirmButtonText: 'Submit',
+                        showCancelButton: true,
+                        background: '#1f2937',
+                        color: '#fff',
+                        inputAttributes: { min: 1 },
+                    });
+
+                    if (!amount) return;
+
+                    try {
+                        await axios.patch(`/api/coin-seller/${id}/recharge`,
+                            { amount: parseInt(amount) },
+                            { headers: { Authorization: `Bearer ${this.token}` } });
+                        Swal.fire('Success', 'Recharge successful', 'success');
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire('Error', 'Recharge failed', 'error');
+                    }
+                },
+
+                async toggleActive(seller) {
+                    try {
+                        seller.status = seller.status === 'active' ? 'inactive' : 'active';
+                        await axios.patch(`/api/coin-seller/${seller.id}/status`, {
+                            status: seller.status
+                        }, { headers: { Authorization: `Bearer ${this.token}` } });
+                        Swal.fire('Updated', `Seller marked as ${seller.status}`, 'success');
+                    } catch (err) {
+                        console.error(err);
+                        // revert
+                        seller.status = seller.status === 'active' ? 'inactive' : 'active';
+                        Swal.fire('Error', 'Failed to update status', 'error');
+                    }
+                }
+            }
+        }
+
+    </script>
+</body>
+
+</html>

@@ -29,10 +29,14 @@
                 <div class="bg-white text-gray-800 p-4 rounded shadow">
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-xl font-semibold" x-text="o.title"></p>
-                            <p class="text-gray-700 mt-1" x-text="o.content"></p> <!-- changed here -->
-                            <p class="text-gray-600 mt-1 font-semibold" x-text="'Price: $' + o.price.toFixed(2)"></p>
-                            <!-- added price -->
+                            <p class="text-xl font-semibold" x-text="o.offer.title"></p>
+                            <p class="text-gray-700 mt-1" x-text="o.offer.content"></p>
+                            <p class="text-gray-600 mt-1 font-semibold" x-text="'Price: $' + o.offer.price.toFixed(2)">
+                            </p>
+                            <template x-if="o.offer.diamonds">
+                                <p class="text-sm text-blue-700 mt-1">💎 <span x-text="o.offer.diamonds"></span>
+                                    Diamonds</p>
+                            </template>
                             <p class="text-xs text-gray-500 mt-2" x-text="new Date(o.createdAt).toLocaleString()"></p>
                         </div>
                         <button @click="deleteOffer(o.id)"
@@ -45,7 +49,6 @@
                 <p class="text-gray-400">No offers available.</p>
             </template>
         </div>
-
 
         <!-- Add Modal -->
         <div x-show="showModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
@@ -68,10 +71,15 @@
                         <input type="number" x-model="form.price" step="0.01" min="0"
                             class="w-full border border-gray-300 rounded px-3 py-2" required>
                     </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-1">Diamonds (optional)</label>
+                        <input type="number" x-model="form.diamonds" min="0"
+                            class="w-full border border-gray-300 rounded px-3 py-2">
+                    </div>
                     <div class="flex justify-end">
                         <button type="button" class="text-gray-500 mr-4" @click="showModal = false">Cancel</button>
-                        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Create
-                        </button>
+                        <button type="submit"
+                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Create</button>
                     </div>
                 </form>
             </div>
@@ -94,46 +102,48 @@
                 offers: [],
                 form: {
                     title: '',
-                    content: '', // ✅ changed from message
-                    price: null  // ✅ added price as required by DTO
+                    content: '',
+                    price: null,
+                    diamonds: null
                 },
 
                 fetchOffers() {
-                    axios.get('/api/offer/get-all', {
-                        headers: {
-                            Authorization: `Bearer ${getCookie('token')}`
-                        }
-                    }).then(res => {
-                        this.offers = res.data;
-                    }).catch(err => {
-                        Toast.fire({ icon: 'error', title: 'Failed to load offers' });
-                        console.error(err);
-                    });
+                    axios.get('/api/vip/offer', {
+                        headers: { Authorization: `Bearer ${getCookie('token')}` }
+                    })
+                        .then(res => {
+                            this.offers = res.data;
+                        })
+                        .catch(err => {
+                            Toast.fire({ icon: 'error', title: 'Failed to load offers' });
+                            console.error(err);
+                        });
                 },
 
                 createOffer() {
-
                     const payload = {
                         title: this.form.title,
                         content: this.form.content,
-                        price: Number(this.form.price),  // <-- ensure number here
+                        price: Number(this.form.price),
+                        diamonds: this.form.diamonds ? Number(this.form.diamonds) : 0
                     };
 
-                    axios.post('/api/offer/create', payload, {
-                        headers: {
-                            Authorization: `Bearer ${getCookie('token')}`
-                        }
-                    }).then(() => {
-                        Toast.fire({ icon: 'success', title: 'Offer created' });
-                        this.showModal = false;
-                        this.form.title = '';
-                        this.form.content = '';
-                        this.form.price = null;
-                        this.fetchOffers();
-                    }).catch(err => {
-                        Toast.fire({ icon: 'error', title: 'Creation failed' });
-                        console.error(err);
-                    });
+                    axios.post('/api/vip/offer', payload, {
+                        headers: { Authorization: `Bearer ${getCookie('token')}` }
+                    })
+                        .then(() => {
+                            Toast.fire({ icon: 'success', title: 'Offer created' });
+                            this.showModal = false;
+                            this.form.title = '';
+                            this.form.content = '';
+                            this.form.price = null;
+                            this.form.diamonds = null;
+                            this.fetchOffers();
+                        })
+                        .catch(err => {
+                            Toast.fire({ icon: 'error', title: 'Creation failed' });
+                            console.error(err);
+                        });
                 },
 
                 deleteOffer(id) {
@@ -147,24 +157,22 @@
                         confirmButtonText: 'Yes, delete it!'
                     }).then(result => {
                         if (result.isConfirmed) {
-                            axios.delete(`/api/offer/delete:${id}`, {
-                                headers: {
-                                    Authorization: `Bearer ${getCookie('token')}`
-                                }
-                            }).then(() => {
-                                Toast.fire({ icon: 'success', title: 'Deleted successfully' });
-                                this.fetchOffers();
-                            }).catch(err => {
-                                Toast.fire({ icon: 'error', title: 'Failed to delete' });
-                                console.error(err);
-                            });
+                            axios.delete(`/api/vip/offer/${id}`, {
+                                headers: { Authorization: `Bearer ${getCookie('token')}` }
+                            })
+                                .then(() => {
+                                    Toast.fire({ icon: 'success', title: 'Deleted successfully' });
+                                    this.fetchOffers();
+                                })
+                                .catch(err => {
+                                    Toast.fire({ icon: 'error', title: 'Failed to delete' });
+                                    console.error(err);
+                                });
                         }
                     });
                 }
             }
         }
-
-
     </script>
 
 </body>

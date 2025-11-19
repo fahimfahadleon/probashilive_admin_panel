@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coin Seller Requests</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="./main.js"></script>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen">
+    <div x-data="coinSellerPage()" x-init="loadRequests()" class="p-6 w-full min-h-screen">
+        <h1 class="text-3xl font-bold mb-6">Pending Coin Seller Requests</h1>
+
+        <template x-if="loading">
+            <p>Loading...</p>
+        </template>
+
+        <template x-if="!loading && requests.length === 0">
+            <p class="text-gray-400">No pending requests found.</p>
+        </template>
+
+        <div class="space-y-4" x-show="!loading">
+            <template x-for="request in requests" :key="request.id">
+                <div class="bg-white text-gray-900 rounded-lg shadow p-4 flex justify-between items-center">
+                    <div>
+                        <p class="font-bold" x-text="request.user.name + ' (' + request.user.id + ')'"></p>
+                        <p class="text-sm text-gray-600 mt-1">
+                            💬 <span x-text="request.description || 'No description'"></span> |
+                            🆔 <span x-text="request.transactionId || 'N/A'"></span>
+                        </p>
+                        <p class="text-xs text-gray-500"
+                            x-text="'Created at: ' + new Date(request.createdAt).toLocaleString()"></p>
+                    </div>
+                    <div class="space-x-2">
+                        <button class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                            @click="handleAction(request.id, 'approve')">Approve
+                        </button>
+                        <button class="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                            @click="handleAction(request.id, 'reject')">Reject
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <script>
+        function coinSellerPage() {
+            return {
+                requests: [],
+                loading: true,
+                loadRequests() {
+                    axios.get('/api/coin-seller-request/pending', {
+                        headers: { Authorization: `Bearer ${getCookie('token')}` }
+                    })
+                        .then(res => this.requests = res.data)
+                        .catch(err => {
+                            console.error(err);
+                            Swal.fire('Error', 'Failed to load requests', 'error');
+                        })
+                        .finally(() => this.loading = false);
+                },
+                handleAction(id, action) {
+                    axios.patch(`/api/coin-seller-request/${id}/${action}`, {}, {
+                        headers: { Authorization: `Bearer ${getCookie('token')}` }
+                    })
+                        .then(() => {
+                            this.requests = this.requests.filter(r => r.id !== id);
+                            Swal.fire('Success', `Request ${action}ed`, 'success');
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            Swal.fire('Error', `Failed to ${action} request`, 'error');
+                        });
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-900 text-white min-h-screen">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pending Reports</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.2.4/dist/tailwind.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/svgaplayerweb@2.3.0/build/svga.min.js"></script>
+    <script src="./main.js"></script>
+</head>
+
+<body class="min-h-screen p-6">
+
+    <div x-data="pendingReportsPage()" x-init="loadReports()">
+
+        <h1 class="text-3xl font-bold mb-6">Pending Reports</h1>
+
+        <!-- Total Count -->
+        <div class="mb-6">
+            <p class="text-gray-400">
+                Total Pending Reports: <span x-text="pendingCount"></span>
+            </p>
+        </div>
+
+        <!-- Loading -->
+        <template x-if="loading">
+            <p class="text-gray-400">Loading reports...</p>
+        </template>
+
+        <!-- Empty State -->
+        <template x-if="!loading && reports.length === 0">
+            <p class="text-gray-400">No pending reports found.</p>
+        </template>
+
+        <!-- Reports List -->
+        <div class="space-y-4" x-show="!loading">
+            <template x-for="report in reports" :key="report.id">
+                <div class="bg-gray-800 p-4 rounded-xl shadow flex flex-col space-y-2">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <p>
+                                <span class="font-bold">Reporter:</span>
+                                <span x-text="report.reporter ? report.reporter.name : report.email"></span>
+                            </p>
+                            <p>
+                                <span class="font-bold">Target:</span>
+                                <span x-text="report.target ? report.target.name : 'N/A'"></span>
+                            </p>
+                            <p><span class="font-bold">Reason:</span> <span x-text="report.reason"></span></p>
+                            <p class="text-gray-400 text-xs"
+                                x-text="'Submitted at: ' + new Date(report.createdAt).toLocaleString()"></p>
+                        </div>
+
+                        <!-- Future Action Buttons -->
+                        <div class="flex flex-col gap-2">
+                            <button @click="reviewReport(report.id, 'APPROVED')"
+                                class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded">
+                                Approve
+                            </button>
+                            <button @click="reviewReport(report.id, 'DECLINED')"
+                                class="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded">
+                                Decline
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+    </div>
+
+    <script>
+        function pendingReportsPage() {
+            return {
+                reports: [],
+                loading: true,
+                pendingCount: 0,
+
+
+                async loadReports() {
+                    try {
+                        const res = await axios.get('/api/friends/reports?status=PENDING', {
+                            headers: { Authorization: `Bearer ${getCookie('token')}` }
+                        });
+                        this.reports = res.data || [];
+                        this.pendingCount = this.reports.length;
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire('Error', 'Failed to load reports', 'error');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                async reviewReport(reportId, status) {
+                    try {
+                        await axios.patch(`/api/friends/report/${reportId}`, { status }, {
+                            headers: { Authorization: `Bearer ${getCookie('token')}` }
+                        });
+                        Swal.fire('Success', `Report ${status.toLowerCase()}`, 'success');
+                        // Remove from list
+                        this.reports = this.reports.filter(r => r.id !== reportId);
+                        this.pendingCount = this.reports.length;
+                    } catch (err) {
+                        console.error(err);
+                        Swal.fire('Error', 'Failed to update report', 'error');
+                    }
+                }
+            }
+        }
+    </script>
+
+</body>
+
+</html>

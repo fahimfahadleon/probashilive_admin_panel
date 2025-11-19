@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./main.js"></script>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen p-6" x-data="dashboardPage()" x-init="loadDashboard()">
+
+    <h1 class="text-3xl font-bold mb-6">Payment Dashboard</h1>
+
+    <!-- Today’s Summary -->
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-gray-800 p-4 rounded shadow">
+            <p class="text-gray-400">Diamonds Sold Today</p>
+            <p class="text-2xl font-bold" x-text="todayStats._sum.diamonds || 0"></p>
+        </div>
+        <div class="bg-gray-800 p-4 rounded shadow">
+            <p class="text-gray-400">Revenue Today ($)</p>
+            <p class="text-2xl font-bold" x-text="todayStats._sum.price?.toFixed(2) || '0.00'"></p>
+        </div>
+        <div class="bg-gray-800 p-4 rounded shadow">
+            <p class="text-gray-400">Gateways</p>
+            <p class="text-2xl font-bold" x-text="gateways.join(', ') || 'None'"></p>
+        </div>
+    </div>
+
+    <!-- Monthly Charts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-gray-800 p-4 rounded shadow">
+            <h2 class="font-bold mb-2">Monthly Diamonds Sold</h2>
+            <canvas id="diamondsChart"></canvas>
+        </div>
+        <div class="bg-gray-800 p-4 rounded shadow">
+            <h2 class="font-bold mb-2">Monthly Revenue ($)</h2>
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        function dashboardPage() {
+            return {
+                monthlyStats: [],
+                todayStats: { _sum: { diamonds: 0, price: 0 } },
+                gateways: [],
+                loading: true,
+
+                async loadDashboard() {
+                    try {
+                        const res = await axios.get('/api/payment/payments', {
+                            headers: { Authorization: `Bearer ${getCookie('token')}` }
+                        });
+                        this.monthlyStats = res.data.monthlyStats || [];
+                        this.todayStats = res.data.todayStats || { _sum: { diamonds: 0, price: 0 } };
+                        this.gateways = (res.data.gateways || []).map(g => `${g.provider} (${g.phone})`);
+
+                        this.renderCharts();
+                    } catch (err) {
+                        console.error(err);
+                        alert('Failed to load dashboard data');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                renderCharts() {
+                    const months = this.monthlyStats.map(m => m.month);
+                    const diamonds = this.monthlyStats.map(m => m.totalDiamonds);
+                    const revenue = this.monthlyStats.map(m => m.totalRevenue);
+
+                    new Chart(document.getElementById('diamondsChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: months,
+                            datasets: [{
+                                label: 'Diamonds Sold',
+                                data: diamonds,
+                                backgroundColor: 'rgba(99, 102, 241, 0.7)',
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+
+                    new Chart(document.getElementById('revenueChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: months,
+                            datasets: [{
+                                label: 'Revenue ($)',
+                                data: revenue,
+                                backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true } }
+                        }
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

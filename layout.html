@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js" defer></script>
+    <script src="https://unpkg.com/alpinejs" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11" defer></script>
+    <script src="./main.js"></script>
+
+    <style>
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-900 text-white">
+
+    <div class="flex h-screen" x-data="dashboard()" x-init="init()">
+
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-800 p-6 border-r border-gray-700 overflow-y-auto">
+            <h2 class="text-2xl font-bold mb-6">Admin Panel</h2>
+
+            <nav class="flex flex-col gap-3">
+
+                <!-- <a onclick="loadPage('dashboard.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Dashboard</span>
+                    <span x-text="response.totalUser"></span>
+                </a> -->
+
+                <a onclick="loadPage('users.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Users</span>
+                    <span x-text="response.activeUser"></span>
+                </a>
+
+                <a onclick="loadPage('announcement.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Announcements</span>
+                    <span x-text="response.announcementCount"></span>
+                </a>
+
+                <a onclick="loadPage('payment_requests.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Payment Requests</span>
+                    <span x-text="response.totalPaymentRequests"></span>
+                </a>
+
+                <a onclick="loadPage('coin_seller_requests.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Pending Coin Sellers</span>
+                    <span x-text="response.pendingCoinSellers"></span>
+                </a>
+
+                <a onclick="loadPage('coin_sellers.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Coin Sellers</span>
+                    <span x-text="response.totalSellers"></span>
+                </a>
+
+                <a onclick="loadPage('payment_history.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Payment History</span>
+                </a>
+
+                <a onclick="loadPage('gifts.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Gifts</span>
+                </a>
+
+                <a onclick="loadPage('settings.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Settings</span>
+                </a>
+
+                <a onclick="loadPage('reports.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Reports</span>
+                    <span x-text="response.pendingReports"></span>
+                </a>
+
+                <a onclick="loadPage('top_ups.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Top-ups</span>
+                    <span x-text="response.totalTopUps"></span>
+                </a>
+
+                <a onclick="loadPage('collections.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Collections</span>
+                </a>
+
+                <a onclick="loadPage('offer.html')"
+                    class="p-3 bg-gray-700 rounded hover:bg-gray-600 cursor-pointer flex justify-between">
+                    <span>Offers</span>
+                    <span x-text="response.offerCount"></span>
+                </a>
+
+            </nav>
+        </aside>
+
+        <!-- Main content frame -->
+        <main class="flex-1">
+            <iframe id="contentFrame" src="users.html"></iframe>
+        </main>
+
+    </div>
+
+    <script>
+        function loadPage(page) {
+            document.getElementById('contentFrame').src = page;
+        }
+
+        function dashboard() {
+            return {
+                response: {
+                    activeUser: 0,
+                    liveUser: 0,
+                    post: 0,
+                    report: 0,
+                    revenue: {},
+                    totalUser: 0,
+                    video: 0,
+                    vipUser: 0,
+                    pendingReports: 0,
+                    totalPaymentRequests: 0,
+                    totalSellers: 0,
+                    totalTopUps: 0,
+                    pendingCoinSellers: 0,
+                    announcementCount: 0,
+                    offerCount: 0
+                },
+                init() {
+                    axios.get('/api/admin/dashboard', {
+                        headers: {
+                            Authorization: `Bearer ${getCookie('token')}`
+                        }
+                    }).then((res) => {
+                        this.response = res.data;
+                    }).catch((err) => console.error(err));
+                }
+            }
+        }
+    </script>
+
+</body>
+
+</html>

@@ -106,6 +106,34 @@
                     </div>
                 </a>
 
+
+
+
+                <a href="coin_seller_requests.html">
+                    <div class="bg-white text-gray-900 rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
+                        title="View Offer">
+                        <h2 class="text-xl font-semibold mb-2">Pending Coin Seller</h2>
+                        <p class="text-4xl font-bold" x-text="response.pendingCoinSellers || 0"></p>
+                    </div>
+                </a>
+
+                <a href="coin_sellers.html">
+                    <div class="bg-white text-gray-900 rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
+                        title="View Offer">
+                        <h2 class="text-xl font-semibold mb-2">Coin Sellers</h2>
+                        <p class="text-4xl font-bold" x-text="response.totalSellers || 0"></p>
+
+                    </div>
+                </a>
+
+                <a href="payment_history.html">
+                    <div class="bg-white text-gray-900 rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
+                        title="View Offer">
+                        <h2 class="text-xl font-semibold mb-2">Payment History</h2>
+                        <p class="text-4xl font-bold" x-text="response.totalSellers || 0"></p>
+
+                    </div>
+                </a>
                 <!-- New Card 4 -->
 
 
@@ -121,8 +149,15 @@
                     <div class="bg-white text-gray-900 rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
                         title="Settings">
                         <h2 class="text-xl font-semibold mb-2">Settintgs</h2>
+                        <h2 class="text-xl font-semibold mb-2">Profit</h2>
                     </div>
-
+                </a>
+                <a href="reports.html">
+                    <div class="bg-white text-gray-900 rounded-lg shadow p-6 cursor-pointer hover:shadow-lg transition"
+                        title="Settings">
+                        <h2 class="text-xl font-semibold mb-2">Reports</h2>
+                        <p class="text-4xl font-bold" x-text="response.pendingReports || 0"></p>
+                    </div>
                 </a>
 
                 <!-- Top-ups -->
@@ -164,8 +199,11 @@
                     totalUser: 0,
                     video: 0,
                     vipUser: 0,
+                    pendingReports: 0,
                     totalPaymentRequests: 0,
+                    totalSellers: 0,
                     totalTopUps: 0,
+                    pendingCoinSellers: 0,
                     announcementCount: 0,
                     offerCount: 0,
                 },

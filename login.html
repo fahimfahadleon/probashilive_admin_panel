@@ -91,7 +91,7 @@
                         });
                         console.log(response.data);
                         setCookie('token', response.data.access_token, 1);
-                        window.location.href = '/dashboard.html';
+                        window.location.href = '/layout.html';
                     }).catch((error) => {
                         this.errorMsg = 'Email or password invalid';
                         Toast.fire({
